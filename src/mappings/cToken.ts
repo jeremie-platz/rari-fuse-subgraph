@@ -133,12 +133,16 @@ function updateCtoken(event: ethereum.Event, entity: CtokenSchema | null, addres
     let util = Utility.load("0");
     const ethUSD = util.ethPriceInDai;
 
+    log.debug("updateCtoken: ethUSDPrice: {}", [ethUSD.toString()] );
 
 
     //update price from oracle on pool
     const pool = ComptrollerSchema.load(entity.pool);
     const oracle = PriceOracle.bind(pool.priceOracle as Address);
     const asset = UnderlyingAssetSchema.load(entity.underlying);
+
+    log.debug("updateCtoken: pool: {}, oracle: {}, asset: {}", [pool.address.toHexString(), oracle._address.toHexString(), asset.address.toHexString()] );
+
     const _price = oracle.try_getUnderlyingPrice(address);
     if (!_price.reverted) {
         asset.price = _price.value;
@@ -161,6 +165,7 @@ function updateCtoken(event: ethereum.Event, entity: CtokenSchema | null, addres
     }
 
     const totalSupply = calculateCTokenTotalSupply(instance);
+
     //this one is seperate from the other if block because usd increase doesn't always mean that real amount increased
     if (entity.totalSupply.ge(_price.value)) {
         asset.totalSupply = asset.totalSupply.plus(totalSupply.minus(entity.totalSupply));
