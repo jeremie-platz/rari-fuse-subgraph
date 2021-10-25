@@ -3,15 +3,23 @@ import { PoolRegistered } from "../../generated/FusePoolDirectory/FusePoolDirect
 import { MarketListed } from "../../generated/FusePoolDirectory/Comptroller";
 
 import { Comptroller as ComptrollerTemplate } from "../../generated/templates";
-import {CToken as CTokenTemplate} from "../../generated/templates/CToken/CToken";
+import { CToken as CTokenTemplate } from "../../generated/templates/CToken/CToken";
 import { Address, DataSourceContext } from "@graphprotocol/graph-ts";
-import { Ctoken, UnderlyingAsset, Pool as ComptrollerSchema } from "../../generated/schema";
+import {
+  Ctoken,
+  UnderlyingAsset,
+  Pool as ComptrollerSchema,
+} from "../../generated/schema";
 
-import {Comptroller} from "../../generated/templates/Comptroller/Comptroller";
-import { log, BigInt} from '@graphprotocol/graph-ts';
+import { Comptroller } from "../../generated/templates/Comptroller/Comptroller";
+import { log, BigInt } from "@graphprotocol/graph-ts";
 import { updateETHPrice } from "./helpers";
-import { ADDRESS_ZERO, getOrCreateMarketWithId, ProtocolName, ProtocolType } from "./simplefi-common";
-
+import {
+  ADDRESS_ZERO,
+  getOrCreateMarketWithId,
+  ProtocolName,
+  ProtocolType,
+} from "./simplefi-common";
 
 /*  var ComptrollerABI = require("../../abis/Comptroller.json");
 // Require the web3 node module.
@@ -23,48 +31,75 @@ let web3 = new Web3(new Web3.providers.HttpProvider('https://main-rpc.linkpool.i
  */
 
 export function getAllMarketsInPool(_contract: Comptroller): string[] {
-
-  let allMarketsInPool_ = _contract.getAllMarkets()
-  let allMarketsInPool: string[] = []
+  let allMarketsInPool_ = _contract.getAllMarkets();
+  let allMarketsInPool: string[] = [];
 
   for (let i = 0; i < allMarketsInPool_.length; i++) {
-    allMarketsInPool.push(allMarketsInPool_[i].toHexString())
+    allMarketsInPool.push(allMarketsInPool_[i].toHexString());
   }
 
-  return allMarketsInPool
+  return allMarketsInPool;
 }
 
 export function handlePoolRegistered(event: PoolRegistered): void {
-  
   const index = event.params.index;
   const comptrollerAddress = event.params.pool.comptroller;
   const poolName = event.params.pool.name;
 
   const comptroller = Comptroller.bind(comptrollerAddress);
-  log.warning(`🚨🚨comptroller address is {} for pool {}🚨🚨`,[comptrollerAddress.toHexString(), poolName]);
-  
+  log.warning(`🚨🚨comptroller address is {} for pool {}🚨🚨`, [
+    comptrollerAddress.toHexString(),
+    poolName,
+  ]);
+
   updateETHPrice();
-  
+
   let context = new DataSourceContext();
   const comp = new ComptrollerSchema(comptrollerAddress.toHexString());
+
+  let priceOracleCall = comptroller.try_oracle();
+  if (!priceOracleCall.reverted) {
+    comp.priceOracle = priceOracleCall.value;
+  } else {
+    log.warning("priceOracleCall Reverted", []);
+  }
+
+  let maxAssetsCall = comptroller.try_maxAssets();
+  if (!maxAssetsCall.reverted) {
+    comp.maxAssets = comptroller.maxAssets();
+  } else {
+    log.warning("maxAssetsCall Reverted", []);
+  }
+
+  let liquidationIncentiveMantissaCall = comptroller.try_liquidationIncentiveMantissa();
+  if (!liquidationIncentiveMantissaCall.reverted) {
+    comp.liquidationIncentive = liquidationIncentiveMantissaCall.value;
+  } else {
+    log.warning("liquidationIncentiveMantissaCall Reverted", []);
+  }
+
+  let closeFactorMantissaCall = comptroller.try_closeFactorMantissa();
+  if (!closeFactorMantissaCall.reverted) {
+    comp.closeFactor = closeFactorMantissaCall.value;
+  } else {
+    log.warning("closeFactorMantissaCall Reverted", []);
+  }
+
   comp.address = comptrollerAddress;
   comp.comptroller = comptrollerAddress;
   comp.index = index;
-  comp.name = poolName; 
-  comp.priceOracle = comptroller.oracle();
-  comp.liquidationIncentive = comptroller.liquidationIncentiveMantissa();
-  comp.maxAssets = comptroller.maxAssets();
-  comp.closeFactor = comptroller.closeFactorMantissa();
-  comp.assets = [];//actual ctokens are linked in comptroller.ts mapping
+  comp.name = poolName;
+  // comp.priceOracle = comptroller.oracle();
+  // comp.liquidationIncentive = comptroller.liquidationIncentiveMantissa();
+  // comp.maxAssets = comptroller.maxAssets();
+  // comp.closeFactor = comptroller.closeFactorMantissa();
+  comp.assets = []; //actual ctokens are linked in comptroller.ts mapping
   comp.totalSupplyUSD = BigInt.fromString("0");
   comp.totalBorrowUSD = BigInt.fromString("0");
   comp.totalLiquidityUSD = BigInt.fromString("0");
   comp.totalSeizedTokens = BigInt.fromString("0");
   comp.blockCreated = event.block.number;
-  
-  
+
   ComptrollerTemplate.createWithContext(comptrollerAddress, context);
   comp.save();
-
-   
 }
