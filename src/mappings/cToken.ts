@@ -60,10 +60,21 @@ export function handleBorrow(event: Borrow): void {
         cTokenSimpleToken,
         [simpleERC20]
       )
-      borrowFromMarket(event,account, market,event.params.borrowAmount, [], [], erc20.balanceOf(event.params.borrower), [], []);
 
-    updateCtoken(event, entity, event.address);
+    
+    let balanceCall = erc20.try_balanceOf(event.params.borrower)
+    log.warning("handleBorrow: trying erc20Balance: token: {} - borrower: {}", [erc20._address.toHexString() ,event.params.borrower.toHexString()]);
+    // Todo - Fix error on borrow in this codeblock
+    if (!balanceCall.reverted) {
+        // borrowFromMarket(event,account, market,event.params.borrowAmount, [], [], erc20.balanceOf(event.params.borrower), [], []);
+        // updateCtoken(event, entity, event.address);
+    } else {
+        log.warning("handleBorrow: erc20 balanceCall Reverted: token: {} - borrower: {}", [erc20._address.toHexString() ,event.params.borrower.toHexString()]);
+    }
+
+     
     entity.save();
+
 }
 
 export function handleRepayBorrow(event: RepayBorrow): void {
@@ -141,7 +152,7 @@ function updateCtoken(event: ethereum.Event, entity: CtokenSchema | null, addres
     const oracle = PriceOracle.bind(pool.priceOracle as Address);
     const asset = UnderlyingAssetSchema.load(entity.underlying);
 
-    log.debug("updateCtoken: pool: {}, oracle: {}, asset: {}", [pool.address.toHexString(), oracle._address.toHexString(), asset.address.toHexString()] );
+    log.debug("updateCtoken: asset: {}", [pool.address.toHexString(), oracle._address.toHexString(), asset.address.toHexString()] );
 
     const _price = oracle.try_getUnderlyingPrice(address);
     if (!_price.reverted) {
@@ -151,10 +162,16 @@ function updateCtoken(event: ethereum.Event, entity: CtokenSchema | null, addres
         entity.underlyingToken = asset.address;
         entity.underlyingPrice = asset.price; */
 
+ 
+    log.debug("updateCtoken: 3 - {} - {}", [entity.id, entity.underlying])
+
 
     const instance = CToken.bind(address);
     const erc20 = ERC20.bind(Address.fromString(entity.underlying));
     const simpleERC20 = getOrCreateERC20Token(event, Address.fromString(entity.underlying));
+
+    log.debug("updateCtoken: 4 - {} - {}", [entity.id, entity.underlying])
+
 
     entity.name = instance.name();
     entity.symbol = instance.symbol();
@@ -164,7 +181,12 @@ function updateCtoken(event: ethereum.Event, entity: CtokenSchema | null, addres
         entity.underlyingBalance = _balance.value;
     }
 
+    log.debug("updateCtoken: 5 - {} - {}", [entity.id, entity.underlying])
+
     const totalSupply = calculateCTokenTotalSupply(instance);
+
+    log.debug("updateCtoken: 6 - {} - {}", [entity.id, entity.underlying])
+
 
     //this one is seperate from the other if block because usd increase doesn't always mean that real amount increased
     if (entity.totalSupply.ge(_price.value)) {
@@ -175,6 +197,8 @@ function updateCtoken(event: ethereum.Event, entity: CtokenSchema | null, addres
             asset.totalSupply = BigZero;
         }
     }
+
+    log.debug("updateCtoken: 7 - {} - {}", [entity.id, entity.underlying])
 
     entity.totalSupply = totalSupply;
     const newTotalSupplyUSD = getTotalInUSD(totalSupply, ethUSD, asset.price);
@@ -194,6 +218,8 @@ function updateCtoken(event: ethereum.Event, entity: CtokenSchema | null, addres
         }
     }
     entity.totalSupplyUSD = newTotalSupplyUSD;
+
+    log.debug("updateCtoken: 8 - {} - {}", [entity.id, entity.underlying])
 
     const _cash = instance.try_getCash();
     if (!_cash.reverted) {
@@ -228,11 +254,16 @@ function updateCtoken(event: ethereum.Event, entity: CtokenSchema | null, addres
         entity.liquidityUSD = newLiquidityUSD;
     }
 
+    log.debug("updateCtoken: 9 - {} - {}", [entity.id, entity.underlying])
+
+
     const _borrowRatePerBlock = instance.try_borrowRatePerBlock();
     if (!_borrowRatePerBlock.reverted) {
         entity.borrowRatePerBlock = _borrowRatePerBlock.value;
         entity.borrowAPR = convertMantissaToAPR(BigDecimal.fromString(_borrowRatePerBlock.value.toString()));
     }
+
+    log.debug("updateCtoken: 10 - {} - {}", [entity.id, entity.underlying])
 
     const _totalBorrow = instance.try_totalBorrowsCurrent();
     if (!_totalBorrow.reverted) {
@@ -268,6 +299,8 @@ function updateCtoken(event: ethereum.Event, entity: CtokenSchema | null, addres
     }
 
 
+    log.debug("updateCtoken: 11 - {} - {}", [entity.id, entity.underlying])
+
 
     const _totalReserves = instance.try_totalReserves();
     if (!_totalReserves.reverted) {
@@ -300,6 +333,8 @@ function updateCtoken(event: ethereum.Event, entity: CtokenSchema | null, addres
         log.warning("🚨 updating supplyAPY to {} from {}", [convertMantissaToAPY(BigDecimal.fromString(_supplyRatePerBlock.value.toString())).toString(), _supplyRatePerBlock.value.toString()]);
         entity.supplyAPY = convertMantissaToAPY(BigDecimal.fromString(_supplyRatePerBlock.value.toString()));
     }
+
+    log.debug("updateCtoken: 12 - {} - {}", [entity.id, entity.underlying])
 
     entity.save();
     pool.save();
