@@ -64,12 +64,12 @@ export function handlePoolRegistered(event: PoolRegistered): void {
     log.warning("priceOracleCall Reverted", []);
   }
 
-  let maxAssetsCall = comptroller.try_maxAssets();
-  if (!maxAssetsCall.reverted) {
-    comp.maxAssets = comptroller.maxAssets();
-  } else {
-    log.warning("maxAssetsCall Reverted", []);
-  }
+  // let maxAssetsCall = comptroller.try_maxAssets();
+  // if (!maxAssetsCall.reverted) {
+  //   comp.maxAssets = comptroller.maxAssets();
+  // } else {
+  //   log.warning("maxAssetsCall Reverted", []);
+  // }
 
   let liquidationIncentiveMantissaCall = comptroller.try_liquidationIncentiveMantissa();
   if (!liquidationIncentiveMantissaCall.reverted) {
@@ -94,6 +94,7 @@ export function handlePoolRegistered(event: PoolRegistered): void {
   // comp.maxAssets = comptroller.maxAssets();
   // comp.closeFactor = comptroller.closeFactorMantissa();
   comp.assets = []; //actual ctokens are linked in comptroller.ts mapping
+  comp.underlyingAssets = []; //actual ctokens are linked in comptroller.ts mapping
   comp.totalSupplyUSD = BigInt.fromString("0");
   comp.totalBorrowUSD = BigInt.fromString("0");
   comp.totalLiquidityUSD = BigInt.fromString("0");
