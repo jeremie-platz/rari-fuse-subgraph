@@ -247,13 +247,38 @@ export class Ctoken extends Entity {
     }
   }
 
-  get totalSeizedTokens(): BigInt {
+  get totalSeizedTokens(): BigInt | null {
     let value = this.get("totalSeizedTokens");
-    return value.toBigInt();
+    if (value === null || value.kind == ValueKind.NULL) {
+      return null;
+    } else {
+      return value.toBigInt();
+    }
   }
 
-  set totalSeizedTokens(value: BigInt) {
-    this.set("totalSeizedTokens", Value.fromBigInt(value));
+  set totalSeizedTokens(value: BigInt | null) {
+    if (value === null) {
+      this.unset("totalSeizedTokens");
+    } else {
+      this.set("totalSeizedTokens", Value.fromBigInt(value as BigInt));
+    }
+  }
+
+  get collateralFactor(): BigInt | null {
+    let value = this.get("collateralFactor");
+    if (value === null || value.kind == ValueKind.NULL) {
+      return null;
+    } else {
+      return value.toBigInt();
+    }
+  }
+
+  set collateralFactor(value: BigInt | null) {
+    if (value === null) {
+      this.unset("collateralFactor");
+    } else {
+      this.set("collateralFactor", Value.fromBigInt(value as BigInt));
+    }
   }
 }
 

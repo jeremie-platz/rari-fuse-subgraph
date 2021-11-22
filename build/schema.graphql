@@ -65,7 +65,9 @@ type Ctoken @entity {
   supplyAPY: BigDecimal
 
   "total tokens seized in liquidations"
-  totalSeizedTokens: BigInt!
+  totalSeizedTokens: BigInt
+
+  collateralFactor: BigInt
 }
 
 type Pool @entity {

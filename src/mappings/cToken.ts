@@ -118,8 +118,8 @@ export function handleBorrow(event: Borrow): void {
     //     event.params.borrower.toString(),
     //   ]
     // );
-    // borrowFromMarket(event, account, market, event.params.borrowAmount, [], [], balanceCall.value, [], []);
-    // updateCtoken(event, entity, event.address);
+    borrowFromMarket(event, account, market, event.params.borrowAmount, [], [], balanceCall.value, [], []);
+    updateCtoken(event, entity, event.address);
   } else {
     log.warning(
       "handleBorrow: erc20 balanceCall Reverted: token: {} - borrower: {}",
