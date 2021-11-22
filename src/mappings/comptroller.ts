@@ -47,9 +47,15 @@ function updateFromComptroller(
   address: Address
 ): void {
   const instance = Comptroller.bind(address);
-  entity.maxAssets = instance.maxAssets();
-  entity.liquidationIncentive = instance.liquidationIncentiveMantissa();
-  entity.closeFactor = instance.closeFactorMantissa();
+  let liquidationIncentiveCall = instance.try_liquidationIncentiveMantissa();
+  let closeFactorCall = instance.try_closeFactorMantissa();
+
+  // let maxAssetsCall = instance.try_maxAssets();
+  // if (!maxAssetsCall.reverted) entity.maxAssets = maxAssetsCall.value;
+
+  if (!liquidationIncentiveCall.reverted)
+    entity.liquidationIncentive = liquidationIncentiveCall.value;
+  if (!closeFactorCall.reverted) entity.closeFactor = closeFactorCall.value;
 }
 
 function updateFromLens(
@@ -440,6 +446,9 @@ export function handleMarketListed(event: MarketListed): void {
 
   //push cToken to relevant Pool's array
   comptroll.assets = comptroll.assets.concat([ct.id]);
+  comptroll.underlyingAssets = comptroll.underlyingAssets.concat([
+    underlying.toHexString(),
+  ]);
 
   comptroll.save();
 

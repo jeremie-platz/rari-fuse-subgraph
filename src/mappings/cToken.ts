@@ -74,8 +74,8 @@ export function handleNewComptroller(event: NewComptroller): void {
 
 export function handleBorrow(event: Borrow): void {
   log.warning(
-    `🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨 cToken line 45, begin handleBorrow()`,
-    []
+    `🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨 cToken line 45, begin handleBorrow - tx: {} `,
+    [event.transaction.hash.toHexString()]
   );
   const entity = CtokenSchema.load(event.address.toHexString());
   //entity.totalBorrows = event.params.totalBorrows;
@@ -105,9 +105,20 @@ export function handleBorrow(event: Borrow): void {
     erc20._address.toHexString(),
     event.params.borrower.toHexString(),
   ]);
+
+  log.info("handleBorrow: CToken: {}", [event.address.toString()]);
+
   // Todo - Fix error on borrow in this codeblock
   if (!balanceCall.reverted) {
-    // borrowFromMarket(event,account, market,event.params.borrowAmount, [], [], erc20.balanceOf(event.params.borrower), [], []);
+    // log.info(
+    //   "handleBorrow: trying borrowFromMarket: borrowAmount - {}, balanceOfBorrower: {} - borrower: {}",
+    //   [
+    //     event.params.borrowAmount.toString(),
+    //     balanceCall.value.toString(),
+    //     event.params.borrower.toString(),
+    //   ]
+    // );
+    // borrowFromMarket(event, account, market, event.params.borrowAmount, [], [], balanceCall.value, [], []);
     // updateCtoken(event, entity, event.address);
   } else {
     log.warning(

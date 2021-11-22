@@ -339,6 +339,26 @@ export class Pool extends Entity {
     }
   }
 
+  get underlyingAssets(): Array<string> | null {
+    let value = this.get("underlyingAssets");
+    if (value === null || value.kind == ValueKind.NULL) {
+      return null;
+    } else {
+      return value.toStringArray();
+    }
+  }
+
+  set underlyingAssets(value: Array<string> | null) {
+    if (value === null) {
+      this.unset("underlyingAssets");
+    } else {
+      this.set(
+        "underlyingAssets",
+        Value.fromStringArray(value as Array<string>)
+      );
+    }
+  }
+
   get index(): BigInt | null {
     let value = this.get("index");
     if (value === null || value.kind == ValueKind.NULL) {
@@ -413,23 +433,6 @@ export class Pool extends Entity {
       this.unset("liquidationIncentive");
     } else {
       this.set("liquidationIncentive", Value.fromBigInt(value as BigInt));
-    }
-  }
-
-  get maxAssets(): BigInt | null {
-    let value = this.get("maxAssets");
-    if (value === null || value.kind == ValueKind.NULL) {
-      return null;
-    } else {
-      return value.toBigInt();
-    }
-  }
-
-  set maxAssets(value: BigInt | null) {
-    if (value === null) {
-      this.unset("maxAssets");
-    } else {
-      this.set("maxAssets", Value.fromBigInt(value as BigInt));
     }
   }
 

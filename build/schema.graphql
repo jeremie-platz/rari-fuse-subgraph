@@ -82,6 +82,7 @@ type Pool @entity {
   address: Bytes
   "array of Ctokens in this comptroller/pool"
   assets: [Ctoken!]
+  underlyingAssets: [UnderlyingAsset!]
 
   "index of the pool for this comptroller"
   index: BigInt
@@ -96,8 +97,6 @@ type Pool @entity {
   closeFactor: BigInt
   "The percent bonus liquidators get for liquidating for underlying pool"
   liquidationIncentive: BigInt
-  "Max assets a single user can enter for underlying pool"
-  maxAssets: BigInt
 
 
   "total amount supplied value in USD of all assets/ctokens in this pool"

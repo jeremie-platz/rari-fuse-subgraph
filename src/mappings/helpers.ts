@@ -15,6 +15,7 @@ export function calculateCTokenTotalSupply(instance: CToken): BigInt {
   const totalFuseFees = instance.totalFuseFees();
   return liquidity.plus(totalBorrow).minus(totalReserves).plus(totalAdminFees).plus(totalFuseFees);
 } 
+
 export function getETHBalance(address: Address): BigInt {
   log.warning(`getting eth balance for {}`, [address.toHexString()]);
   const instance = EthBalance.bind(Address.fromString("0xbb0eba3023a31de8deda15742b7269caf73d0ce1"));
