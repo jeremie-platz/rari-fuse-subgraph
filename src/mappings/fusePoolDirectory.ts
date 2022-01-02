@@ -94,7 +94,7 @@ export function handlePoolRegistered(event: PoolRegistered): void {
   // comp.maxAssets = comptroller.maxAssets();
   // comp.closeFactor = comptroller.closeFactorMantissa();
   comp.assets = []; //actual ctokens are linked in comptroller.ts mapping
-  comp.underlyingAssets = []; //actual ctokens are linked in comptroller.ts mapping
+  comp.underlyingAssets = [];  
   comp.totalSupplyUSD = BigInt.fromString("0");
   comp.totalBorrowUSD = BigInt.fromString("0");
   comp.totalLiquidityUSD = BigInt.fromString("0");

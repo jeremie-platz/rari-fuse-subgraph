@@ -2,6 +2,7 @@
 
 import {
   MarketListed,
+  NewCollateralFactor,
   NewPriceOracle,
 } from "../../generated/FusePoolDirectory/Comptroller";
 import {
@@ -471,4 +472,12 @@ export function handleMarketListed(event: MarketListed): void {
     `🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨 line 462, at the end of comptroller`,
     []
   );
+}
+
+// Update the CF on that asset
+export function handleNewCollateralFactor(event: NewCollateralFactor) : void {
+  // log.debug("yo", []);
+  let cToken = CtokenSchema.load(event.params.cToken.toHexString());
+  cToken.collateralFactor = event.params.newCollateralFactorMantissa;
+  cToken.save();
 }

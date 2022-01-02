@@ -62,6 +62,8 @@ templates:
           handler: handleMarketListed
         - event: NewPriceOracle(address,address)
           handler: handleNewPriceOracle
+        - event: NewCollateralFactor(address,uint256,uint256)
+          handler: handleNewCollateralFactor
   - name: CToken
     kind: ethereum/contract
     network: mainnet
