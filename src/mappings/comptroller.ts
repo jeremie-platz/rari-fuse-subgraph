@@ -42,7 +42,13 @@ import {
   ProtocolName,
   ProtocolType,
 } from "./simplefi-common";
+import {
+  updateCTokenCount,
+  updateUnderlyingAssetCount,
+} from "../utils/updateCount";
 
+
+// Creates Comptroller contract instance and updates a `Comptroller` entity with its values
 function updateFromComptroller(
   entity: ComptrollerSchema | null,
   address: Address
@@ -64,6 +70,7 @@ function updateFromLens(
   address: Address
 ): void {}
 
+// Todo - only update the price oracle on the pool
 export function handleNewPriceOracle(event: NewPriceOracle): void {
   const comptroll = ComptrollerSchema.load(event.address.toHexString());
   comptroll.priceOracle = event.params.newPriceOracle;
@@ -81,11 +88,15 @@ export function handleMarketListed(event: MarketListed): void {
   //const index = context.getString("index");
 
   // log.warning(`updating Comptroller {}🚨🚨`, [event.address.toHexString()]);
+
+  // Instantiate Comptroller, add new Market to `assets` list
   const comptroll = ComptrollerSchema.load(event.address.toHexString());
   comptroll.assets = comptroll.assets.concat([
     event.params.cToken.toHexString(),
   ]);
 
+  // Do updates
+  // TODO - simplify this
   updateFromComptroller(comptroll, event.address);
 
   let ct = new CtokenSchema(event.params.cToken.toHexString());
@@ -211,13 +222,17 @@ export function handleMarketListed(event: MarketListed): void {
      ct.supplyRatePerBlock = _supplyRatePerBlock.value;
    } */
 
+  //  Load the underlyingasset.
   let asset = UnderlyingAssetSchema.load(underlying.toHexString());
+  let newUnderlyingAsset = asset == null;
 
+  // If the underlying doesn't exist yet in our db, create it
   if (asset == null) {
     asset = new UnderlyingAssetSchema(underlying.toHexString());
     asset.id = underlying.toHexString();
     asset.address = underlying;
 
+    // ETH
     if (
       underlying.toHexString() == "0x0000000000000000000000000000000000000000"
     ) {
@@ -228,13 +243,13 @@ export function handleMarketListed(event: MarketListed): void {
     } else if (
       underlying.toHexString() == "0x9f8f72aa9304c8b593d555f12ef6589cc3a579a2"
     ) {
-      //mkr (MakerDAO) token
+      //MKR (MakerDAO) token
       //very old and uses a unsupported string encoding so setup manually
       asset.name = "Maker";
       asset.symbol = "MKR";
       asset.decimals = 18;
     } else {
-      //erc20
+      // erc20 - handle normally
       const _decimals = erc20.try_decimals();
       if (!_decimals.reverted) {
         asset.decimals = _decimals.value;
@@ -468,6 +483,14 @@ export function handleMarketListed(event: MarketListed): void {
     [simpleERC20]
   );
 
+  // Update Market Count every time a new market is listed
+  updateCTokenCount();
+
+  // Update Underlying Asset Count if this market represented a new underlyingAsset
+  if (newUnderlyingAsset) {
+    updateUnderlyingAssetCount();
+  }
+
   log.warning(
     `🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨 line 462, at the end of comptroller`,
     []
@@ -475,7 +498,7 @@ export function handleMarketListed(event: MarketListed): void {
 }
 
 // Update the CF on that asset
-export function handleNewCollateralFactor(event: NewCollateralFactor) : void {
+export function handleNewCollateralFactor(event: NewCollateralFactor): void {
   // log.debug("yo", []);
   let cToken = CtokenSchema.load(event.params.cToken.toHexString());
   cToken.collateralFactor = event.params.newCollateralFactorMantissa;

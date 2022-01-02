@@ -20,14 +20,13 @@ import {
   ProtocolName,
   ProtocolType,
 } from "./simplefi-common";
+import { updateFusePoolCount } from "../utils/updateCount";
 
 /*  var ComptrollerABI = require("../../abis/Comptroller.json");
 // Require the web3 node module.
 var Web3 = require('web3');
 // Show Web3 where it needs to look for a connection to Ethereum.
 let web3 = new Web3(new Web3.providers.HttpProvider('https://main-rpc.linkpool.io/'));
-
-
  */
 
 export function getAllMarketsInPool(_contract: Comptroller): string[] {
@@ -54,9 +53,9 @@ export function handlePoolRegistered(event: PoolRegistered): void {
 
   updateETHPrice();
 
-  let context = new DataSourceContext();
   const comp = new ComptrollerSchema(comptrollerAddress.toHexString());
 
+  // Get the pool's price oracle
   let priceOracleCall = comptroller.try_oracle();
   if (!priceOracleCall.reverted) {
     comp.priceOracle = priceOracleCall.value;
@@ -64,6 +63,7 @@ export function handlePoolRegistered(event: PoolRegistered): void {
     log.warning("priceOracleCall Reverted", []);
   }
 
+  // TODO - remove: deprecated
   // let maxAssetsCall = comptroller.try_maxAssets();
   // if (!maxAssetsCall.reverted) {
   //   comp.maxAssets = comptroller.maxAssets();
@@ -71,6 +71,7 @@ export function handlePoolRegistered(event: PoolRegistered): void {
   //   log.warning("maxAssetsCall Reverted", []);
   // }
 
+  // Liquidation Incentive
   let liquidationIncentiveMantissaCall = comptroller.try_liquidationIncentiveMantissa();
   if (!liquidationIncentiveMantissaCall.reverted) {
     comp.liquidationIncentive = liquidationIncentiveMantissaCall.value;
@@ -78,6 +79,7 @@ export function handlePoolRegistered(event: PoolRegistered): void {
     log.warning("liquidationIncentiveMantissaCall Reverted", []);
   }
 
+  // Close Factor
   let closeFactorMantissaCall = comptroller.try_closeFactorMantissa();
   if (!closeFactorMantissaCall.reverted) {
     comp.closeFactor = closeFactorMantissaCall.value;
@@ -85,6 +87,7 @@ export function handlePoolRegistered(event: PoolRegistered): void {
     log.warning("closeFactorMantissaCall Reverted", []);
   }
 
+  // Basics
   comp.address = comptrollerAddress;
   comp.comptroller = comptrollerAddress;
   comp.index = index;
@@ -94,13 +97,18 @@ export function handlePoolRegistered(event: PoolRegistered): void {
   // comp.maxAssets = comptroller.maxAssets();
   // comp.closeFactor = comptroller.closeFactorMantissa();
   comp.assets = []; //actual ctokens are linked in comptroller.ts mapping
-  comp.underlyingAssets = [];  
+  comp.underlyingAssets = [];
   comp.totalSupplyUSD = BigInt.fromString("0");
   comp.totalBorrowUSD = BigInt.fromString("0");
   comp.totalLiquidityUSD = BigInt.fromString("0");
   comp.totalSeizedTokens = BigInt.fromString("0");
   comp.blockCreated = event.block.number;
 
+  // Instantiate the Comptroller Template for this Fuse Pool so that we can listen to events on it.
+  let context = new DataSourceContext();
   ComptrollerTemplate.createWithContext(comptrollerAddress, context);
   comp.save();
+
+  // Increment Pool count aggregate type
+  updateFusePoolCount();
 }

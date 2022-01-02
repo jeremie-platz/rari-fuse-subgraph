@@ -1641,3 +1641,129 @@ export class PositionSnapshot extends Entity {
     this.set("transferredTo", Value.fromStringArray(value));
   }
 }
+
+export class CToken_Count extends Entity {
+  constructor(id: string) {
+    super();
+    this.set("id", Value.fromString(id));
+  }
+
+  save(): void {
+    let id = this.get("id");
+    assert(id !== null, "Cannot save CToken_Count entity without an ID");
+    assert(
+      id.kind == ValueKind.STRING,
+      "Cannot save CToken_Count entity with non-string ID. " +
+        'Considering using .toHex() to convert the "id" to a string.'
+    );
+    store.set("CToken_Count", id.toString(), this);
+  }
+
+  static load(id: string): CToken_Count | null {
+    return store.get("CToken_Count", id) as CToken_Count | null;
+  }
+
+  get id(): string {
+    let value = this.get("id");
+    return value.toString();
+  }
+
+  set id(value: string) {
+    this.set("id", Value.fromString(value));
+  }
+
+  get count(): BigInt {
+    let value = this.get("count");
+    return value.toBigInt();
+  }
+
+  set count(value: BigInt) {
+    this.set("count", Value.fromBigInt(value));
+  }
+}
+
+export class UnderlyingAsset_Count extends Entity {
+  constructor(id: string) {
+    super();
+    this.set("id", Value.fromString(id));
+  }
+
+  save(): void {
+    let id = this.get("id");
+    assert(
+      id !== null,
+      "Cannot save UnderlyingAsset_Count entity without an ID"
+    );
+    assert(
+      id.kind == ValueKind.STRING,
+      "Cannot save UnderlyingAsset_Count entity with non-string ID. " +
+        'Considering using .toHex() to convert the "id" to a string.'
+    );
+    store.set("UnderlyingAsset_Count", id.toString(), this);
+  }
+
+  static load(id: string): UnderlyingAsset_Count | null {
+    return store.get(
+      "UnderlyingAsset_Count",
+      id
+    ) as UnderlyingAsset_Count | null;
+  }
+
+  get id(): string {
+    let value = this.get("id");
+    return value.toString();
+  }
+
+  set id(value: string) {
+    this.set("id", Value.fromString(value));
+  }
+
+  get count(): BigInt {
+    let value = this.get("count");
+    return value.toBigInt();
+  }
+
+  set count(value: BigInt) {
+    this.set("count", Value.fromBigInt(value));
+  }
+}
+
+export class Pool_Count extends Entity {
+  constructor(id: string) {
+    super();
+    this.set("id", Value.fromString(id));
+  }
+
+  save(): void {
+    let id = this.get("id");
+    assert(id !== null, "Cannot save Pool_Count entity without an ID");
+    assert(
+      id.kind == ValueKind.STRING,
+      "Cannot save Pool_Count entity with non-string ID. " +
+        'Considering using .toHex() to convert the "id" to a string.'
+    );
+    store.set("Pool_Count", id.toString(), this);
+  }
+
+  static load(id: string): Pool_Count | null {
+    return store.get("Pool_Count", id) as Pool_Count | null;
+  }
+
+  get id(): string {
+    let value = this.get("id");
+    return value.toString();
+  }
+
+  set id(value: string) {
+    this.set("id", Value.fromString(value));
+  }
+
+  get count(): BigInt {
+    let value = this.get("count");
+    return value.toBigInt();
+  }
+
+  set count(value: BigInt) {
+    this.set("count", Value.fromBigInt(value));
+  }
+}
