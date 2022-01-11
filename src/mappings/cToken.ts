@@ -615,7 +615,7 @@ function updateCtoken(
         delta
       );
     } else if (newCash.lt(oldCash)) {
-      let delta = newCash.minus(oldCash);
+      let delta = oldCash.minus(newCash);
       underlyingEntity.totalLiquidity = underlyingEntity.totalLiquidity.minus(
         delta
       );
