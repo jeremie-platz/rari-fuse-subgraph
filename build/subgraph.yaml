@@ -24,6 +24,8 @@ dataSources:
           file: FusePoolDirectory/abis/AccessControlledAggregator.json
         - name: PriceOracle
           file: FusePoolDirectory/abis/Oracles/PriceOracle.json
+        - name: ChainLinkPriceOracle
+          file: FusePoolDirectory/abis/Oracles/ChainLinkPriceOracle.json
         - name: EthBalance
           file: FusePoolDirectory/abis/EthBalance.json
       eventHandlers:
@@ -52,10 +54,14 @@ templates:
           file: Comptroller/abis/ERC20.json
         - name: PriceOracle
           file: Comptroller/abis/Oracles/PriceOracle.json
+        - name: ChainLinkPriceOracle
+          file: Comptroller/abis/Oracles/ChainLinkPriceOracle.json
         - name: AccessControlledAggregator
           file: Comptroller/abis/AccessControlledAggregator.json
         - name: EthBalance
           file: Comptroller/abis/EthBalance.json
+        - name: ChainLinkPriceOracle
+          file: Comptroller/abis/Oracles/ChainLinkPriceOracle.json
       eventHandlers:
         - event: MarketListed(address)
           handler: handleMarketListed
@@ -82,6 +88,8 @@ templates:
           file: CToken/abis/CToken.json
         - name: PriceOracle
           file: CToken/abis/Oracles/PriceOracle.json
+        - name: ChainLinkPriceOracle
+          file: CToken/abis/Oracles/ChainLinkPriceOracle.json
         - name: ERC20
           file: CToken/abis/ERC20.json
         - name: AccessControlledAggregator

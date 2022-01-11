@@ -76,6 +76,7 @@ export function getOrCreateAccount(address: Address): Account {
   return account as Account
 }
 
+// Gets a schema instance of an ERC20 Token
 export function getOrCreateERC20Token(event: ethereum.Event, address: Address): Token {
   let addressHex = address.toHexString()
   let token = Token.load(addressHex)

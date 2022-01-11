@@ -47,17 +47,16 @@ import {
   updateUnderlyingAssetCount,
 } from "../utils/updateCount";
 
-
 // Creates Comptroller contract instance and updates a `Comptroller` entity with its values
 function updateFromComptroller(
   entity: ComptrollerSchema | null,
   address: Address
 ): void {
-  const instance = Comptroller.bind(address);
-  let liquidationIncentiveCall = instance.try_liquidationIncentiveMantissa();
-  let closeFactorCall = instance.try_closeFactorMantissa();
+  const comptrollerInstance = Comptroller.bind(address);
+  let liquidationIncentiveCall = comptrollerInstance.try_liquidationIncentiveMantissa();
+  let closeFactorCall = comptrollerInstance.try_closeFactorMantissa();
 
-  // let maxAssetsCall = instance.try_maxAssets();
+  // let maxAssetsCall = comptrollerInstance.try_maxAssets();
   // if (!maxAssetsCall.reverted) entity.maxAssets = maxAssetsCall.value;
 
   if (!liquidationIncentiveCall.reverted)
@@ -80,6 +79,11 @@ export function handleNewPriceOracle(event: NewPriceOracle): void {
 
 export function handleMarketListed(event: MarketListed): void {
   log.warning(`🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨 handleMarketListed`, []);
+
+  // Utils
+  let util = Utility.load("0");
+  let ethUSD = util.ethPriceInDai;
+
   // log.warning(`🚨🚨creating CToken for {}🚨🚨`, [
   //   event.params.cToken.toHexString(),
   // ]);
@@ -89,119 +93,91 @@ export function handleMarketListed(event: MarketListed): void {
 
   // log.warning(`updating Comptroller {}🚨🚨`, [event.address.toHexString()]);
 
+  /** Instantiate Entities **/
+
   // Instantiate Comptroller, add new Market to `assets` list
   const comptroll = ComptrollerSchema.load(event.address.toHexString());
   comptroll.assets = comptroll.assets.concat([
     event.params.cToken.toHexString(),
   ]);
 
-  // Do updates
+  // Do Comptroller updates
   // TODO - simplify this
   updateFromComptroller(comptroll, event.address);
 
+
+  /** BEGIN CTOKEN **/
+
+  // Instantiate new CToken for newly listed market
   let ct = new CtokenSchema(event.params.cToken.toHexString());
   ct.pool = event.address.toHexString();
 
-  log.warning(
-    `🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨 below updateFromComptroller`,
-    []
-  );
+  // log.warning(
+  //   `🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨 below updateFromComptroller`,
+  //   []
+  // );
   //CTokenTemplate.create(event.params.cToken); 4
 
-  const instance = CToken.bind(event.params.cToken);
-  const underlying = instance.underlying();
+  const cTokenInstance = CToken.bind(event.params.cToken);
+  const underlyingAddress = cTokenInstance.underlying();
   // log.warning(` CToken underlying is {}🚨🚨`, [underlying.toHexString()]);
 
-  ct.name = instance.name();
-  ct.symbol = instance.symbol();
-  ct.decimals = instance.decimals();
+  ct.name = cTokenInstance.name();
+  ct.symbol = cTokenInstance.symbol();
+  ct.decimals = cTokenInstance.decimals();
 
-  const simpleERC20 = getOrCreateERC20Token(event, underlying);
-  const erc20 = ERC20.bind(underlying);
-  const _balance = erc20.try_balanceOf(event.params.cToken);
-  if (!_balance.reverted) {
-    log.warning(`🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨 in _balance.reverted`, []);
-    ct.underlyingBalance = _balance.value;
+  /* Begin ERC20 */
+  // SimpleFi - Save ERC20 - Simplefi util
+  const simpleERC20 = getOrCreateERC20Token(event, underlyingAddress);
+
+  // Fuse - create ERC20 instance
+  const erc20 = ERC20.bind(underlyingAddress);
+
+  // Get ERC20 Balance of CToken
+  const tryBalance = erc20.try_balanceOf(event.params.cToken);
+  if (!tryBalance.reverted) {
+    ct.underlyingBalance = tryBalance.value;
   } else {
+    // Get ETH Balance - if underlying is ETH
     if (
-      underlying.toHexString() == "0x0000000000000000000000000000000000000000"
+      underlyingAddress.toHexString() ==
+      "0x0000000000000000000000000000000000000000"
     ) {
-      log.warning(
-        `🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨 line 112, cToken, underlying asset is ETH`,
-        []
-      );
-      //underlying is ETH
       ct.underlyingBalance = getETHBalance(event.params.cToken);
     } else {
-      log.warning(
-        `🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨 line 120, erc20 balance call fails`,
-        []
-      );
+      // Balance call failed and asset is not ETH -  Instantiate ERC20 Balance to 0
+
+      // log.warning(
+      //   `🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨 line 120, erc20 balance call fails. instantiating to 0`,
+      //   []
+      // );
       //erc20 balance call failed
-      ct.underlyingBalance = BigInt.fromString("0");
+      ct.underlyingBalance = BigZero;
     }
   }
 
-  let util = Utility.load("0");
-  const ethUSD = util.ethPriceInDai;
+  // const cTokenTotalSupply = calculateCTokenTotalSupply(cTokenInstance);
+  // ct.totalSupply = cTokenTotalSupply;
 
-  const oracle = PriceOracle.bind(comptroll.priceOracle as Address);
-
-  const cTokenTotalSupply = calculateCTokenTotalSupply(instance);
-  ct.totalSupply = cTokenTotalSupply;
-
-  ct.liquidity = instance.getCash();
-  /* const _cash = instance.try_getCash();
+  // ct.liquidity = cTokenInstance.getCash();
+  /* const _cash = cTokenInstance.try_getCash();
   if (!_cash.reverted) {
     ct.liquidity = _cash.value;
   } */
 
-  ct.borrowRatePerBlock = instance.borrowRatePerBlock();
-  ct.borrowAPR = convertMantissaToAPR(
-    BigDecimal.fromString(ct.borrowRatePerBlock.toString())
-  );
-  /* const _borrowRatePerBlock = instance.try_borrowRatePerBlock();
-  if (!_borrowRatePerBlock.reverted) {
-    ct.borrowRatePerBlock = _borrowRatePerBlock.value;
-  } */
-
-  ct.totalBorrow = instance.totalBorrowsCurrent();
-  /* const _totalBorrows = instance.try_totalBorrows();
+  // ct.totalBorrow = cTokenInstance.totalBorrowsCurrent();
+  /* const _totalBorrows = cTokenInstance.try_totalBorrows();
   if (!_totalBorrows.reverted) {
     ct.totalBorrows = _totalBorrows.value;
   } */
 
-  ct.totalReserves = instance.totalReserves();
-  /*  const _totalReserves = instance.try_totalReserves();
-   if (!_totalReserves.reverted) {
-     ct.totalReserves = _totalReserves.value;
-   } */
-
-  ct.reserveFactor = instance.reserveFactorMantissa();
-  /* const _reserveFactor = instance.try_reserveFactorMantissa();
-  if (!_reserveFactor.reverted) {
-    ct.reserveFactor = _reserveFactor.value;
+  ct.borrowRatePerBlock = cTokenInstance.borrowRatePerBlock();
+  /* const _borrowRatePerBlock = cTokenInstance.try_borrowRatePerBlock();
+  if (!_borrowRatePerBlock.reverted) {
+    ct.borrowRatePerBlock = _borrowRatePerBlock.value;
   } */
 
-  ct.adminFee = instance.adminFeeMantissa();
-  /* const _adminFee = instance.try_adminFeeMantissa();
-  if (!_adminFee.reverted) {
-    ct.adminFee = _adminFee.value;
-  } */
-
-  ct.fuseFee = instance.fuseFeeMantissa();
-  /*  const _fuseFee = instance.try_fuseFeeMantissa();
-   if (!_fuseFee.reverted) {
-     ct.fuseFee = _fuseFee.value;
-   } */
-
-  ct.totalAdminFees = instance.totalAdminFees();
-  /* const _totalAdminFees = instance.try_totalAdminFees();
-  if (!_totalAdminFees.reverted) {
-    ct.totalAdminFees = _totalAdminFees.value;
-  } */
-
-  ct.supplyRatePerBlock = instance.supplyRatePerBlock();
+  ct.supplyRatePerBlock = cTokenInstance.supplyRatePerBlock();
   // log.warning("🚨1 setting supplyAPY to {} from {}", [
   //   convertMantissaToAPY(
   //     BigDecimal.fromString(ct.supplyRatePerBlock.toString())
@@ -209,264 +185,179 @@ export function handleMarketListed(event: MarketListed): void {
   //   ct.supplyRatePerBlock.toString(),
   // ]);
 
-  log.warning(
-    `🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨 line 195, after all the variable assignments`,
-    []
-  );
+  ct.totalReserves = cTokenInstance.totalReserves();
+  /*  const _totalReserves = cTokenInstance.try_totalReserves();
+   if (!_totalReserves.reverted) {
+     ct.totalReserves = _totalReserves.value;
+   } */
+
+  ct.reserveFactor = cTokenInstance.reserveFactorMantissa();
+  /* const _reserveFactor = cTokenInstance.try_reserveFactorMantissa();
+  if (!_reserveFactor.reverted) {
+    ct.reserveFactor = _reserveFactor.value;
+  } */
+
+  ct.adminFee = cTokenInstance.adminFeeMantissa();
+  /* const _adminFee = cTokenInstance.try_adminFeeMantissa();
+  if (!_adminFee.reverted) {
+    ct.adminFee = _adminFee.value;
+  } */
+
+  ct.fuseFee = cTokenInstance.fuseFeeMantissa();
+  /*  const _fuseFee = cTokenInstance.try_fuseFeeMantissa();
+   if (!_fuseFee.reverted) {
+     ct.fuseFee = _fuseFee.value;
+   } */
+
+  ct.totalAdminFees = cTokenInstance.totalAdminFees();
+  /* const _totalAdminFees = cTokenInstance.try_totalAdminFees();
+  if (!_totalAdminFees.reverted) {
+    ct.totalAdminFees = _totalAdminFees.value;
+  } */
+
+  ct.underlying = underlyingAddress.toHexString();
+
+  // log.warning(
+  //   `🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨 line 195, after all the variable assignments`,
+  //   []
+  // );
 
   ct.supplyAPY = convertMantissaToAPY(
     BigDecimal.fromString(ct.supplyRatePerBlock.toString())
   );
-  /*  const _supplyRatePerBlock = instance.try_supplyRatePerBlock();
-   if (!_supplyRatePerBlock.reverted) {
-     ct.supplyRatePerBlock = _supplyRatePerBlock.value;
-   } */
 
+  ct.borrowAPR = convertMantissaToAPR(
+    BigDecimal.fromString(ct.borrowRatePerBlock.toString())
+  );
+
+  // Initialize liquidity/supply/borrow values
+  ct.totalSeizedTokens = BigZero;
+
+  ct.totalSupply = BigZero;
+  ct.totalBorrow = BigZero;
+  ct.liquidity = BigZero;
+
+  ct.totalBorrowUSD = BigZero; //initial setup so ct property is correct type
+  ct.totalSupplyUSD = BigZero; //initial setup so ct property is correct type
+  ct.liquidityUSD = BigZero; //initial setup so ct property is correct type
+
+  let context = new DataSourceContext();
+  CTokenTemplate.createWithContext(event.params.cToken, context);
+  ct.save();
+  /** END CTOKEN **/
+
+
+  /** BEGIN UNDERLYING ASSET **/
   //  Load the underlyingasset.
-  let asset = UnderlyingAssetSchema.load(underlying.toHexString());
-  let newUnderlyingAsset = asset == null;
+  let underlyingAsset = UnderlyingAssetSchema.load(
+    underlyingAddress.toHexString()
+  );
+  let isNewUnderlyingAsset = underlyingAsset == null;
 
-  // If the underlying doesn't exist yet in our db, create it
-  if (asset == null) {
-    asset = new UnderlyingAssetSchema(underlying.toHexString());
-    asset.id = underlying.toHexString();
-    asset.address = underlying;
+  // If the underlying underlyingAsset's schema doesn't exist yet in our db, create it
+  if (isNewUnderlyingAsset) {
+    underlyingAsset = new UnderlyingAssetSchema(
+      underlyingAddress.toHexString()
+    );
+    underlyingAsset.id = underlyingAddress.toHexString();
+    underlyingAsset.address = underlyingAddress;
 
-    // ETH
+    // New underlying asset is ETH
     if (
-      underlying.toHexString() == "0x0000000000000000000000000000000000000000"
+      underlyingAddress.toHexString() ==
+      "0x0000000000000000000000000000000000000000"
     ) {
       //eth
-      asset.name = "Ethereum";
-      asset.symbol = "ETH";
-      asset.decimals = 18;
+      underlyingAsset.name = "Ethereum";
+      underlyingAsset.symbol = "ETH";
+      underlyingAsset.decimals = 18;
     } else if (
-      underlying.toHexString() == "0x9f8f72aa9304c8b593d555f12ef6589cc3a579a2"
+      underlyingAddress.toHexString() ==
+      "0x9f8f72aa9304c8b593d555f12ef6589cc3a579a2"
     ) {
       //MKR (MakerDAO) token
       //very old and uses a unsupported string encoding so setup manually
-      asset.name = "Maker";
-      asset.symbol = "MKR";
-      asset.decimals = 18;
+      underlyingAsset.name = "Maker";
+      underlyingAsset.symbol = "MKR";
+      underlyingAsset.decimals = 18;
     } else {
       // erc20 - handle normally
       const _decimals = erc20.try_decimals();
       if (!_decimals.reverted) {
-        asset.decimals = _decimals.value;
+        underlyingAsset.decimals = _decimals.value;
       } else {
         log.warning("get decimals failed", []);
       }
       const name = erc20.try_name();
       if (!name.reverted) {
-        asset.name = name.value;
+        underlyingAsset.name = name.value;
       }
       const symbol = erc20.try_symbol();
       if (!symbol.reverted) {
-        asset.symbol = symbol.value;
+        underlyingAsset.symbol = symbol.value;
       }
     }
+
+    // Since this is our first time creating the UnderlyingAsset, we initalize these values
+    underlyingAsset.totalSupply = BigZero;
+    underlyingAsset.totalBorrow = BigZero;
+    underlyingAsset.totalLiquidity = BigZero;
+
+    underlyingAsset.totalLiquidityUSD = BigZero;
+    underlyingAsset.totalBorrowUSD = BigZero;
+    underlyingAsset.totalSupplyUSD = BigZero;
   }
 
-  log.warning(
-    `🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨 line 249, after Underlying Asset schema`,
-    []
-  );
-
-  if (!asset.pools.includes(event.address.toHexString())) {
-    // log.warning(`asset {} doesn't yet include {} pool, adding it`, [
-    //   asset.id,
-    //   event.address.toHexString(),
-    // ]);
-    //only add pools once
-    asset.pools = asset.pools.concat([event.address.toHexString()]);
-  } else {
-    // log.warning(`skipping pool edition already has it {}`, [
-    //   `${asset.pools.includes(event.address.toHexString())}`,
-    // ]);
+  // Update the underlyingAsset's pools array with this new pool
+  // only add this pool once
+  if (!underlyingAsset.pools.includes(event.address.toHexString())) {
+    underlyingAsset.pools = underlyingAsset.pools.concat([
+      event.address.toHexString(),
+    ]);
   }
+  // Update this underlying asset's CTokens
+  underlyingAsset.ctokens = underlyingAsset.ctokens.concat([
+    event.params.cToken.toHexString(),
+  ]);
 
-  ct.totalBorrowUSD = BigInt.fromString("0"); //initial setup so ct property is correct type
-  asset.totalBorrowUSD = BigInt.fromString("0");
-  ct.totalSupplyUSD = BigInt.fromString("0"); //initial setup so ct property is correct type
-  asset.totalSupplyUSD = BigInt.fromString("0");
-  asset.totalSupply = BigInt.fromString("0");
-  asset.totalBorrow = BigInt.fromString("0");
-  ct.liquidityUSD = BigInt.fromString("0"); //initial setup so ct property is correct type
-  asset.totalLiquidityUSD = BigInt.fromString("0");
-  asset.totalLiquidity = BigInt.fromString("0");
-  ct.totalSeizedTokens = BigInt.fromString("0");
+  // Update price from oracle on pool
+  // Do a whole lotta shit if you have the oracle price
+  const oracle = PriceOracle.bind(comptroll.priceOracle as Address);
+  const tryPrice = oracle.try_getUnderlyingPrice(event.params.cToken);
+  if (!tryPrice.reverted) {
+    let price = tryPrice.value;
 
-  log.warning(
-    `🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨 line 278, BigInt logic conversion`,
-    []
-  );
+    // 1.) Update the underlying Asset's Price
+    underlyingAsset.price = price;
 
-  //update price from oracle on pool
-  const _price = oracle.try_getUnderlyingPrice(event.params.cToken);
-  if (!_price.reverted) {
-    log.warning(
-      `🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨 line 287, in if statement from oracle pricing`,
-      []
+    log.info(
+      "🏪 1 handleMarketListed: market: {}, price: {}, ctoken.liquidityUSD: {}, underlyingAsset.totalLiquidity: {}, underlyingAsset.totalLiquidityUSD: {}, comptroller.totalLiquidityUSD: {}",
+      [
+        event.params.cToken.toHexString(),
+        price.toString(),
+        ct.liquidityUSD.toString(),
+        underlyingAsset.totalLiquidity.toString(),
+        underlyingAsset.totalLiquidityUSD.toString(),
+        comptroll.totalLiquidityUSD.toString(),
+      ]
     );
-
-    asset.price = _price.value;
-
-    const newSupplyUSD = getTotalInUSD(cTokenTotalSupply, ethUSD, _price.value);
-
-    //this one is seperate from the other if block because usd increase doesn't always mean that real amount increased
-    if (ct.totalSupply.ge(cTokenTotalSupply)) {
-      asset.totalSupply = asset.totalSupply.plus(
-        cTokenTotalSupply.minus(ct.totalSupply)
-      );
-    } else {
-      asset.totalSupply = asset.totalSupply.minus(
-        ct.totalSupply.minus(cTokenTotalSupply)
-      );
-    }
-
-    if (ct.totalSupplyUSD.ge(newSupplyUSD)) {
-      //total increased
-      comptroll.totalSupplyUSD = comptroll.totalSupplyUSD.plus(
-        newSupplyUSD.minus(ct.totalSupplyUSD)
-      );
-      asset.totalSupplyUSD = asset.totalSupplyUSD.plus(
-        newSupplyUSD.minus(ct.totalSupplyUSD)
-      );
-      asset.totalSupply = asset.totalSupply.plus(
-        cTokenTotalSupply.minus(ct.totalSupply)
-      );
-    } else {
-      //total decreased
-      comptroll.totalSupplyUSD = comptroll.totalSupplyUSD.minus(
-        ct.totalSupplyUSD.minus(newSupplyUSD)
-      );
-      asset.totalSupplyUSD = asset.totalSupplyUSD.minus(
-        ct.totalSupplyUSD.minus(newSupplyUSD)
-      );
-      if (BigZero.gt(asset.totalSupplyUSD)) {
-        asset.totalSupplyUSD = BigZero;
-      }
-      if (BigZero.gt(comptroll.totalSupplyUSD)) {
-        comptroll.totalSupplyUSD = BigZero;
-      }
-    }
-    ct.totalSupplyUSD = newSupplyUSD;
-
-    const newTotalBorrow = instance.totalBorrowsCurrent();
-    const newBorrowUSD = getTotalInUSD(newTotalBorrow, ethUSD, _price.value);
-
-    //this one is seperate from the other if block because usd increase doesn't always mean that real amount increased
-    if (ct.totalBorrow.ge(newTotalBorrow)) {
-      asset.totalBorrow = asset.totalBorrow.plus(
-        newTotalBorrow.minus(ct.totalBorrow)
-      );
-    } else {
-      asset.totalBorrow = asset.totalBorrow.minus(
-        ct.totalBorrow.minus(newTotalBorrow)
-      );
-      if (BigZero.gt(asset.totalBorrow)) {
-        asset.totalBorrow = BigZero;
-      }
-    }
-
-    log.warning(
-      `🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨 line 351, after borrow logic`,
-      []
-    );
-
-    if (ct.totalBorrowUSD.ge(newBorrowUSD)) {
-      //total increased
-      comptroll.totalBorrowUSD = comptroll.totalBorrowUSD.plus(
-        newBorrowUSD.minus(ct.totalBorrowUSD)
-      );
-      asset.totalBorrowUSD = asset.totalBorrowUSD.plus(
-        newBorrowUSD.minus(ct.totalBorrowUSD)
-      );
-    } else {
-      //total decreased
-      comptroll.totalBorrowUSD = comptroll.totalBorrowUSD.minus(
-        ct.totalBorrowUSD.minus(newBorrowUSD)
-      );
-      asset.totalBorrowUSD = asset.totalBorrowUSD.minus(
-        ct.totalBorrowUSD.minus(newBorrowUSD)
-      );
-      if (BigZero.gt(asset.totalBorrowUSD)) {
-        asset.totalBorrowUSD = BigZero;
-      }
-      if (BigZero.gt(comptroll.totalBorrowUSD)) {
-        comptroll.totalBorrowUSD = BigZero;
-      }
-    }
-    ct.totalBorrowUSD = newBorrowUSD;
-
-    const cash = instance.try_getCash();
-
-    if (!cash.reverted) {
-      const newLiquidityUSD = getTotalInUSD(cash.value, ethUSD, _price.value);
-      //this one is seperate from the other if block because usd increase doesn't always mean that real amount increased
-      if (ct.liquidity.ge(_price.value)) {
-        asset.totalLiquidity = asset.totalLiquidity.plus(
-          _price.value.minus(ct.liquidity)
-        );
-      } else {
-        asset.totalLiquidity = asset.totalLiquidity.minus(
-          ct.liquidity.minus(_price.value)
-        );
-      }
-
-      if (!ct.liquidityUSD) {
-        ct.liquidityUSD = BigInt.fromString("0");
-      }
-      if (ct.liquidityUSD.ge(newBorrowUSD)) {
-        //total increased
-        comptroll.totalLiquidityUSD = comptroll.totalLiquidityUSD.plus(
-          newLiquidityUSD.minus(ct.liquidityUSD)
-        );
-        asset.totalLiquidityUSD = asset.totalLiquidityUSD.plus(
-          newLiquidityUSD.minus(ct.liquidityUSD)
-        );
-      } else {
-        //total decreased
-        comptroll.totalLiquidityUSD = comptroll.totalLiquidityUSD.minus(
-          ct.liquidityUSD.minus(newLiquidityUSD)
-        );
-        asset.totalLiquidityUSD = asset.totalLiquidityUSD.minus(
-          ct.liquidityUSD.minus(newLiquidityUSD)
-        );
-        if (BigZero.gt(asset.totalLiquidityUSD)) {
-          asset.totalLiquidityUSD = BigZero;
-        }
-        if (BigZero.gt(comptroll.totalLiquidityUSD)) {
-          comptroll.totalLiquidityUSD = BigZero;
-        }
-      }
-
-      ct.liquidityUSD = newLiquidityUSD;
-    }
   } else {
-    asset.price = BigInt.fromString("0");
-    ct.totalSupplyUSD = BigZero; //getTotalInUSD(cTokenTotalSupply, ethUSD, BigInt.fromString("0"));
-    ct.totalBorrowUSD = BigZero; //getTotalInUSD(instance.totalBorrowsCurrent(), ethUSD, BigInt.fromString("0"));
-    ct.liquidityUSD = BigZero; //getTotalInUSD(instance.getCash(), ethUSD, BigInt.fromString("0"));
+    // Unable to get price for underlying Asset from oracle upon market listed. Instantiate the price to 0
+    underlyingAsset.price = BigZero;
   }
-  asset.ctokens = asset.ctokens.concat([event.params.cToken.toHexString()]);
-  //asset.pools = asset.ctokens.concat([event.params.cToken.toHexString()])
-  asset.save();
+  underlyingAsset.save();
+  /** END UNDERLYING ASSET */
 
-  ct.underlying = asset.id;
-
-  let context = new DataSourceContext();
-
-  CTokenTemplate.createWithContext(event.params.cToken, context);
-  ct.save();
 
   //push cToken to relevant Pool's array
   comptroll.assets = comptroll.assets.concat([ct.id]);
   comptroll.underlyingAssets = comptroll.underlyingAssets.concat([
-    underlying.toHexString(),
+    underlyingAddress.toHexString(),
   ]);
 
   comptroll.save();
+
+  /** BEGIN SIMPLEFI **/
 
   //create CToken Token interface
   const cTokenSimpleToken = getOrCreateERC20Token(event, event.params.cToken);
@@ -483,18 +374,22 @@ export function handleMarketListed(event: MarketListed): void {
     [simpleERC20]
   );
 
+  /** END SIMPLEFI **/
+
+  /** Count **/
+
   // Update Market Count every time a new market is listed
   updateCTokenCount();
 
   // Update Underlying Asset Count if this market represented a new underlyingAsset
-  if (newUnderlyingAsset) {
+  if (isNewUnderlyingAsset) {
     updateUnderlyingAssetCount();
   }
 
-  log.warning(
-    `🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨 line 462, at the end of comptroller`,
-    []
-  );
+  // log.warning(
+  //   `🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨 line 462, at the end of comptroller`,
+  //   []
+  // );
 }
 
 // Update the CF on that asset
