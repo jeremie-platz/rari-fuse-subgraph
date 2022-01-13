@@ -1,10 +1,24 @@
 /* eslint-disable prefer-const */ // to satisfy AS compiler
-import { BigInt, Address, log, BigDecimal } from "@graphprotocol/graph-ts";
-import { PriceOracle } from "../../generated/templates/CToken/PriceOracle";
+import {
+  BigInt,
+  Address,
+  log,
+  BigDecimal,
+  dataSource,
+} from "@graphprotocol/graph-ts";
 import { ChainLinkPriceOracle } from "../../generated/templates/CToken/ChainLinkPriceOracle";
 import { EthBalance } from "../../generated/templates/CToken/EthBalance";
 import { CToken } from "../../generated/templates/CToken/CToken";
 import { Utility } from "../../generated/schema";
+
+export function getChainLinkOracle(): string {
+  let network = dataSource.network();
+
+  if (network === "arbitrum-one")
+    return "0x639fe6ab55c921f74e7fac1ee960c0b6293ba612";
+
+  return "0x5f4ec3df9cbd43714fe2740f5e3616155c5b8419";
+}
 
 export const BigZero = BigInt.fromString("0");
 
@@ -35,20 +49,16 @@ export function getETHBalance(address: Address): BigInt {
 }
 
 export function updateETHPrice(): void {
-  //update DAI/ETH price from oracle 0x1887118e49e0f4a78bd71b792a49de03504a764d
-  //dai ctoken 0x03b6bff9a13adcbff10facc473c6ab2036a2412b
-  const oracle = ChainLinkPriceOracle.bind(
-    Address.fromString("0x5f4ec3df9cbd43714fe2740f5e3616155c5b8419")
-  );
+  //update ETHUSD price from oracle 0x5f4ec3df9cbd43714fe2740f5e3616155c5b8419
+  let chainLinkOracle = getChainLinkOracle();
+  let oracle = ChainLinkPriceOracle.bind(Address.fromString(chainLinkOracle));
 
   let util = Utility.load("0");
   if (util == null) {
     util = new Utility("0");
-    util.priceOracle = Address.fromString(
-      "0x5f4ec3df9cbd43714fe2740f5e3616155c5b8419"
-    );
   }
-  const _price = oracle.try_latestAnswer();
+
+  let _price = oracle.try_latestAnswer();
   if (!_price.reverted) {
     // chainlink oracle result div by 1e8
     util.ethPriceInDai = _price.value.div(BigInt.fromString("100000000"));
