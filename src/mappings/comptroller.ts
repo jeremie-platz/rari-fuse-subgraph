@@ -40,7 +40,7 @@ import {
   ProtocolName,
   ProtocolType,
 } from "./simplefi-common";
-import { updateCTokenCount } from "../utils/updateCount";
+import { updateCount } from "../utils/updateCount";
 
 // Creates Comptroller contract instance and updates a `Comptroller` entity with its values
 function updateFromComptroller(
@@ -373,11 +373,11 @@ export function handleMarketListed(event: MarketListed): void {
   /** Count **/
 
   // Update Market Count every time a new market is listed
-  updateCTokenCount();
+  updateCount("cToken");
 
   // Update Underlying Asset Count if this market represented a new underlyingAsset
   if (isNewUnderlyingAsset) {
-    updateCTokenCount();
+    updateCount("underlying");
   }
 
   // log.warning(

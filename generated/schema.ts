@@ -725,6 +725,33 @@ export class Utility extends Entity {
   set priceOracle(value: Bytes) {
     this.set("priceOracle", Value.fromBytes(value));
   }
+
+  get cTokenCount(): BigInt {
+    let value = this.get("cTokenCount");
+    return value.toBigInt();
+  }
+
+  set cTokenCount(value: BigInt) {
+    this.set("cTokenCount", Value.fromBigInt(value));
+  }
+
+  get poolCount(): BigInt {
+    let value = this.get("poolCount");
+    return value.toBigInt();
+  }
+
+  set poolCount(value: BigInt) {
+    this.set("poolCount", Value.fromBigInt(value));
+  }
+
+  get underlyingCount(): BigInt {
+    let value = this.get("underlyingCount");
+    return value.toBigInt();
+  }
+
+  set underlyingCount(value: BigInt) {
+    this.set("underlyingCount", Value.fromBigInt(value));
+  }
 }
 
 export class Account extends Entity {

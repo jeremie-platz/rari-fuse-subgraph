@@ -158,6 +158,12 @@ type Utility @entity {
   "last eth/usd price recorded"
   ethPriceInDai: BigInt!
   priceOracle: Bytes!
+
+    # Counts
+  cTokenCount: BigInt!
+  poolCount: BigInt!
+  underlyingCount: BigInt!
+
 }
 
 # Common entities for all protocols

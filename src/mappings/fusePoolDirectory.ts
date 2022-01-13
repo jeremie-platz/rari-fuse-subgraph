@@ -8,7 +8,7 @@ import { Pool as ComptrollerSchema } from "../../generated/schema";
 import { Comptroller } from "../../generated/templates/Comptroller/Comptroller";
 import { log, BigInt } from "@graphprotocol/graph-ts";
 import { updateETHPrice } from "./helpers";
-import { updateCTokenCount } from "../utils/updateCount";
+import { updateCount } from "../utils/updateCount";
 
 /*  var ComptrollerABI = require("../../abis/Comptroller.json");
 // Require the web3 node module.
@@ -98,5 +98,5 @@ export function handlePoolRegistered(event: PoolRegistered): void {
   comp.save();
 
   // Increment Pool count aggregate type
-  updateCTokenCount();
+  updateCount("pool");
 }

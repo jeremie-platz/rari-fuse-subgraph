@@ -1,5 +1,42 @@
-export function updateCTokenCount(): void {}
+import { BigInt } from "@graphprotocol/graph-ts";
+import { Utility } from "../../generated/schema";
+import { BigZero } from "../mappings/helpers";
 
-export function updateUnderlyingAssetCount(): void {}
+const ID = "0";
 
-export function updateFusePoolCount(): void {}
+export function updateCount(type: string): void {
+  //update ETHUSD price from oracle 0x5f4ec3df9cbd43714fe2740f5e3616155c5b8419
+
+  let util = Utility.load("0");
+  if (util == null) {
+    util = new Utility("0");
+  }
+
+  let cTokenCount = util.cTokenCount;
+  let poolCount = util.poolCount;
+  let underlyingCount = util.underlyingCount;
+
+  // Null check
+  if (cTokenCount == null) {
+    cTokenCount = BigZero;
+  }
+
+  if (poolCount == null) {
+    poolCount = BigZero;
+  }
+  if (underlyingCount == null) {
+    underlyingCount = BigZero;
+  }
+
+  if (type === "cToken") {
+    util.cTokenCount = cTokenCount.plus(BigInt.fromString("1"));
+  }
+  if (type === "pool") {
+    util.poolCount = poolCount.plus(BigInt.fromString("1"));
+  }
+  if (type === "underlying") {
+    util.underlyingCount = underlyingCount.plus(BigInt.fromString("1"));
+  }
+
+  util.save();
+}
