@@ -27,8 +27,6 @@ import {
 
 import {
   getETHBalance,
-  getTotalInUSD,
-  calculateCTokenTotalSupply,
   convertMantissaToAPR,
   convertMantissaToAPY,
   BigZero,
@@ -42,10 +40,7 @@ import {
   ProtocolName,
   ProtocolType,
 } from "./simplefi-common";
-import {
-  updateCTokenCount,
-  updateUnderlyingAssetCount,
-} from "../utils/updateCount";
+import { updateCTokenCount } from "../utils/updateCount";
 
 // Creates Comptroller contract instance and updates a `Comptroller` entity with its values
 function updateFromComptroller(
@@ -81,8 +76,8 @@ export function handleMarketListed(event: MarketListed): void {
   log.warning(`🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨 handleMarketListed`, []);
 
   // Utils
-  let util = Utility.load("0");
-  let ethUSD = util.ethPriceInDai;
+  // let util = Utility.load("0");
+  // let ethUSD = util.ethPriceInDai;
 
   // log.warning(`🚨🚨creating CToken for {}🚨🚨`, [
   //   event.params.cToken.toHexString(),
@@ -105,17 +100,16 @@ export function handleMarketListed(event: MarketListed): void {
   // TODO - simplify this
   updateFromComptroller(comptroll, event.address);
 
-
   /** BEGIN CTOKEN **/
 
   // Instantiate new CToken for newly listed market
   let ct = new CtokenSchema(event.params.cToken.toHexString());
   ct.pool = event.address.toHexString();
 
-  // log.warning(
-  //   `🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨 below updateFromComptroller`,
-  //   []
-  // );
+  log.warning(
+    `🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨 below updateFromComptroller`,
+    []
+  );
   //CTokenTemplate.create(event.params.cToken); 4
 
   const cTokenInstance = CToken.bind(event.params.cToken);
@@ -241,11 +235,7 @@ export function handleMarketListed(event: MarketListed): void {
   ct.totalSupplyUSD = BigZero; //initial setup so ct property is correct type
   ct.liquidityUSD = BigZero; //initial setup so ct property is correct type
 
-  let context = new DataSourceContext();
-  CTokenTemplate.createWithContext(event.params.cToken, context);
-  ct.save();
   /** END CTOKEN **/
-
 
   /** BEGIN UNDERLYING ASSET **/
   //  Load the underlyingasset.
@@ -348,7 +338,6 @@ export function handleMarketListed(event: MarketListed): void {
   underlyingAsset.save();
   /** END UNDERLYING ASSET */
 
-
   //push cToken to relevant Pool's array
   comptroll.assets = comptroll.assets.concat([ct.id]);
   comptroll.underlyingAssets = comptroll.underlyingAssets.concat([
@@ -356,6 +345,11 @@ export function handleMarketListed(event: MarketListed): void {
   ]);
 
   comptroll.save();
+
+  ct.underlying = underlyingAsset.id;
+  let context = new DataSourceContext();
+  CTokenTemplate.createWithContext(event.params.cToken, context);
+  ct.save();
 
   /** BEGIN SIMPLEFI **/
 
@@ -383,7 +377,7 @@ export function handleMarketListed(event: MarketListed): void {
 
   // Update Underlying Asset Count if this market represented a new underlyingAsset
   if (isNewUnderlyingAsset) {
-    updateUnderlyingAssetCount();
+    updateCTokenCount();
   }
 
   // log.warning(
@@ -394,8 +388,9 @@ export function handleMarketListed(event: MarketListed): void {
 
 // Update the CF on that asset
 export function handleNewCollateralFactor(event: NewCollateralFactor): void {
-  // log.debug("yo", []);
   let cToken = CtokenSchema.load(event.params.cToken.toHexString());
-  cToken.collateralFactor = event.params.newCollateralFactorMantissa;
-  cToken.save();
+  if (event.params.cToken) {
+    cToken.collateralFactor = event.params.newCollateralFactorMantissa;
+    cToken.save();
+  }
 }
