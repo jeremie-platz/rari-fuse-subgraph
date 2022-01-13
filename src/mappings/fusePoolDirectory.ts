@@ -1,26 +1,14 @@
 /* eslint-disable prefer-const */ // to satisfy AS compiler
 import { PoolRegistered } from "../../generated/FusePoolDirectory/FusePoolDirectory";
-import { MarketListed } from "../../generated/FusePoolDirectory/Comptroller";
 
 import { Comptroller as ComptrollerTemplate } from "../../generated/templates";
-import { CToken as CTokenTemplate } from "../../generated/templates/CToken/CToken";
-import { Address, DataSourceContext } from "@graphprotocol/graph-ts";
-import {
-  Ctoken,
-  UnderlyingAsset,
-  Pool as ComptrollerSchema,
-} from "../../generated/schema";
+import { DataSourceContext } from "@graphprotocol/graph-ts";
+import { Pool as ComptrollerSchema } from "../../generated/schema";
 
 import { Comptroller } from "../../generated/templates/Comptroller/Comptroller";
 import { log, BigInt } from "@graphprotocol/graph-ts";
 import { updateETHPrice } from "./helpers";
-import {
-  ADDRESS_ZERO,
-  getOrCreateMarketWithId,
-  ProtocolName,
-  ProtocolType,
-} from "./simplefi-common";
-import { updateFusePoolCount } from "../utils/updateCount";
+import { updateCTokenCount } from "../utils/updateCount";
 
 /*  var ComptrollerABI = require("../../abis/Comptroller.json");
 // Require the web3 node module.
@@ -110,5 +98,5 @@ export function handlePoolRegistered(event: PoolRegistered): void {
   comp.save();
 
   // Increment Pool count aggregate type
-  updateFusePoolCount();
+  updateCTokenCount();
 }
