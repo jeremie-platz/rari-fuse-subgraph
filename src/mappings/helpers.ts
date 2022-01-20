@@ -56,15 +56,18 @@ export function updateETHPrice(): void {
   let util = Utility.load("0");
   if (util == null) {
     util = new Utility("0");
+    util.ethPriceInDai = BigZero;
+    util.cTokenCount = BigZero;
+    util.poolCount = BigZero;
+    util.underlyingCount = BigZero;
   }
 
   let _price = oracle.try_latestAnswer();
   if (!_price.reverted) {
     // chainlink oracle result div by 1e8
     util.ethPriceInDai = _price.value.div(BigInt.fromString("100000000"));
-  } else {
-    util.ethPriceInDai = BigInt.fromString("0");
   }
+  
   util.save();
 }
 

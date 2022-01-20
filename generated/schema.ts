@@ -717,15 +717,6 @@ export class Utility extends Entity {
     this.set("ethPriceInDai", Value.fromBigInt(value));
   }
 
-  get priceOracle(): Bytes {
-    let value = this.get("priceOracle");
-    return value.toBytes();
-  }
-
-  set priceOracle(value: Bytes) {
-    this.set("priceOracle", Value.fromBytes(value));
-  }
-
   get cTokenCount(): BigInt {
     let value = this.get("cTokenCount");
     return value.toBigInt();

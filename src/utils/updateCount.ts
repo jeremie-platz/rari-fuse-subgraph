@@ -10,23 +10,15 @@ export function updateCount(type: string): void {
   let util = Utility.load("0");
   if (util == null) {
     util = new Utility("0");
+    util.ethPriceInDai = BigZero;
+    util.cTokenCount = BigZero;
+    util.poolCount = BigZero;
+    util.underlyingCount = BigZero;
   }
 
   let cTokenCount = util.cTokenCount;
   let poolCount = util.poolCount;
   let underlyingCount = util.underlyingCount;
-
-  // Null check
-  if (cTokenCount == null) {
-    cTokenCount = BigZero;
-  }
-
-  if (poolCount == null) {
-    poolCount = BigZero;
-  }
-  if (underlyingCount == null) {
-    underlyingCount = BigZero;
-  }
 
   if (type === "cToken") {
     util.cTokenCount = cTokenCount.plus(BigInt.fromString("1"));

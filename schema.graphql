@@ -157,7 +157,6 @@ type Utility @entity {
   id: ID!
   "last eth/usd price recorded"
   ethPriceInDai: BigInt!
-  priceOracle: Bytes!
 
     # Counts
   cTokenCount: BigInt!
