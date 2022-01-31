@@ -650,6 +650,55 @@ export class UnderlyingAsset extends Entity {
   }
 }
 
+export class Oracle extends Entity {
+  constructor(id: string) {
+    super();
+    this.set("id", Value.fromString(id));
+  }
+
+  save(): void {
+    let id = this.get("id");
+    assert(id !== null, "Cannot save Oracle entity without an ID");
+    assert(
+      id.kind == ValueKind.STRING,
+      "Cannot save Oracle entity with non-string ID. " +
+        'Considering using .toHex() to convert the "id" to a string.'
+    );
+    store.set("Oracle", id.toString(), this);
+  }
+
+  static load(id: string): Oracle | null {
+    return store.get("Oracle", id) as Oracle | null;
+  }
+
+  get id(): string {
+    let value = this.get("id");
+    return value.toString();
+  }
+
+  set id(value: string) {
+    this.set("id", Value.fromString(value));
+  }
+
+  get address(): string {
+    let value = this.get("address");
+    return value.toString();
+  }
+
+  set address(value: string) {
+    this.set("address", Value.fromString(value));
+  }
+
+  get name(): string {
+    let value = this.get("name");
+    return value.toString();
+  }
+
+  set name(value: string) {
+    this.set("name", Value.fromString(value));
+  }
+}
+
 export class Utility extends Entity {
   constructor(id: string) {
     super();
