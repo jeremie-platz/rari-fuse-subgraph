@@ -153,6 +153,12 @@ type UnderlyingAsset @entity {
   totalSupplyUSD: BigInt!
 }
 
+type Oracle @entity {
+  id: ID!
+  address: String!
+  name: String!
+}
+
 type Utility @entity {
   id: ID!
   "last eth/usd price recorded"
