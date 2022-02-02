@@ -11,7 +11,7 @@ dataSources:
       startBlock: 12060007
     mapping:
       kind: ethereum/events
-      apiVersion: 0.0.4
+      apiVersion: 0.0.5
       language: wasm/assemblyscript
       entities:
         - Pool
@@ -28,6 +28,8 @@ dataSources:
           file: FusePoolDirectory/abis/Oracles/ChainLinkPriceOracle.json
         - name: EthBalance
           file: FusePoolDirectory/abis/EthBalance.json
+        - name: MasterPriceOracle
+          file: FusePoolDirectory/abis/Oracles/MasterPriceOracle.json
       eventHandlers:
         - event: PoolRegistered(uint256,(string,address,address,uint256,uint256))
           handler: handlePoolRegistered
@@ -40,7 +42,7 @@ templates:
       abi: Comptroller
     mapping:
       kind: ethereum/events
-      apiVersion: 0.0.4
+      apiVersion: 0.0.5
       language: wasm/assemblyscript
       file: templates/Comptroller/Comptroller.wasm
       entities:
@@ -76,7 +78,7 @@ templates:
       abi: CToken
     mapping:
       kind: ethereum/events
-      apiVersion: 0.0.4
+      apiVersion: 0.0.5
       language: wasm/assemblyscript
       file: templates/CToken/CToken.wasm
       entities:
@@ -111,3 +113,31 @@ templates:
           handler: handleLiquidateBorrow
         - event: AccrueInterest(uint256,uint256,uint256,uint256)
           handler: handleAccrueInterest
+  - name: PoolOracle
+    kind: ethereum/contract
+    network: mainnet
+    source:
+      abi: MasterPriceOracle
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.5
+      language: wasm/assemblyscript
+      file: templates/PoolOracle/PoolOracle.wasm
+      entities:
+        - PoolOracle
+      abis:
+        - name: CToken
+          file: PoolOracle/abis/CToken.json
+        - name: PriceOracle
+          file: PoolOracle/abis/Oracles/PriceOracle.json
+        - name: ERC20
+          file: PoolOracle/abis/ERC20.json
+        - name: Comptroller
+          file: PoolOracle/abis/Comptroller.json
+        - name: EthBalance
+          file: PoolOracle/abis/EthBalance.json
+        - name: MasterPriceOracle
+          file: PoolOracle/abis/Oracles/MasterPriceOracle.json
+      eventHandlers:
+        - event: NewOracle(address,address,address)
+          handler: handleNewUnderlyingOracle

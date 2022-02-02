@@ -1,14 +1,28 @@
 /* eslint-disable prefer-const */ // to satisfy AS compiler
 import { PoolRegistered } from "../../generated/FusePoolDirectory/FusePoolDirectory";
 
-import { Comptroller as ComptrollerTemplate } from "../../generated/templates";
-import { DataSourceContext } from "@graphprotocol/graph-ts";
-import { Pool as ComptrollerSchema } from "../../generated/schema";
+import { 
+  Comptroller as ComptrollerTemplate,
+  PoolOracle as PoolOracleTemplate
+} from "../../generated/templates";
+import { CToken as CTokenTemplate } from "../../generated/templates/CToken/CToken";
+import { Address, DataSourceContext } from "@graphprotocol/graph-ts";
+import {
+  Pool as ComptrollerSchema,
+  PoolOracle as PoolOracleSchema,
+} from "../../generated/schema";
 
 import { Comptroller } from "../../generated/templates/Comptroller/Comptroller";
 import { log, BigInt } from "@graphprotocol/graph-ts";
 import { updateETHPrice } from "./helpers";
 import { updateCount } from "../utils/updateCount";
+import {
+  ADDRESS_ZERO,
+  getOrCreateMarketWithId,
+  ProtocolName,
+  ProtocolType,
+} from "./simplefi-common";
+import { MasterPriceOracle } from "../../generated/templates/PoolOracle/MasterPriceOracle";
 
 /*  var ComptrollerABI = require("../../abis/Comptroller.json");
 // Require the web3 node module.
@@ -95,6 +109,31 @@ export function handlePoolRegistered(event: PoolRegistered): void {
   // Instantiate the Comptroller Template for this Fuse Pool so that we can listen to events on it.
   let context = new DataSourceContext();
   ComptrollerTemplate.createWithContext(comptrollerAddress, context);
+  
+
+  let poolOracleSchema = new PoolOracleSchema(comp.priceOracle.toHexString())
+  let poolOracleInstance = MasterPriceOracle.bind(comp.priceOracle as Address)
+  poolOracleSchema.address = comp.priceOracle
+  poolOracleSchema.pool = comp.id
+
+  let poolOracleAdminCall = poolOracleInstance.try_admin()
+  if (!poolOracleAdminCall.reverted) {
+    poolOracleSchema.admin = poolOracleAdminCall.value
+  } else {
+    log.warning("poolOracleAdminCall Reverted", []);
+  }
+
+  let poolOracleDefaultCall = poolOracleInstance.try_defaultOracle()
+  if (!poolOracleDefaultCall.reverted) {
+    poolOracleSchema.defaultOracle = poolOracleDefaultCall.value
+  } else {
+    log.warning("poolOracleDefaultCall Reverted", []);
+  }
+
+  PoolOracleTemplate.create(poolOracleSchema.address as Address)
+  poolOracleSchema.save()
+
+  comp.poolOracle = poolOracleSchema.address.toHexString()
   comp.save();
 
   // Increment Pool count aggregate type

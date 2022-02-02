@@ -11,7 +11,7 @@ dataSources:
       startBlock: 12060007
     mapping:
       kind: ethereum/events
-      apiVersion: 0.0.4
+      apiVersion: 0.0.5
       language: wasm/assemblyscript
       entities:
           # - FusePoolDirectory
@@ -29,6 +29,8 @@ dataSources:
           file: ./abis/Oracles/ChainLinkPriceOracle.json  
         - name: EthBalance
           file: ./abis/EthBalance.json
+        - name: MasterPriceOracle
+          file: ./abis/Oracles/MasterPriceOracle.json
       eventHandlers:
         - event: PoolRegistered(uint256,(string,address,address,uint256,uint256))
           handler: handlePoolRegistered
@@ -41,7 +43,7 @@ templates:
       abi: Comptroller
     mapping:
       kind: ethereum/events
-      apiVersion: 0.0.4
+      apiVersion: 0.0.5
       language: wasm/assemblyscript
       file: ./src/mappings/comptroller.ts
       entities:
@@ -77,7 +79,7 @@ templates:
       abi: CToken
     mapping:
       kind: ethereum/events
-      apiVersion: 0.0.4
+      apiVersion: 0.0.5
       language: wasm/assemblyscript
       file: ./src/mappings/cToken.ts
       entities:
@@ -112,3 +114,31 @@ templates:
           handler: handleLiquidateBorrow
         - event: AccrueInterest(uint256,uint256,uint256,uint256)
           handler: handleAccrueInterest
+  - name: PoolOracle
+    kind: ethereum/contract
+    network: mainnet
+    source:
+      abi: MasterPriceOracle
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.5
+      language: wasm/assemblyscript
+      file: ./src/mappings/masterPriceOracle.ts
+      entities:
+        - PoolOracle
+      abis:
+        - name: CToken
+          file: ./abis/CToken.json
+        - name: PriceOracle
+          file: ./abis/Oracles/PriceOracle.json
+        - name: ERC20
+          file: ./abis/ERC20.json
+        - name: Comptroller
+          file: ./abis/Comptroller.json
+        - name: EthBalance
+          file: ./abis/EthBalance.json
+        - name: MasterPriceOracle
+          file: ./abis/Oracles/MasterPriceOracle.json
+      eventHandlers:
+        - event: NewOracle(address,address,address)
+          handler: handleNewUnderlyingOracle

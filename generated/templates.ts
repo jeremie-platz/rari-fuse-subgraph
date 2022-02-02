@@ -29,3 +29,17 @@ export class CToken extends DataSourceTemplate {
     DataSourceTemplate.createWithContext("CToken", [address.toHex()], context);
   }
 }
+
+export class PoolOracle extends DataSourceTemplate {
+  static create(address: Address): void {
+    DataSourceTemplate.create("PoolOracle", [address.toHex()]);
+  }
+
+  static createWithContext(address: Address, context: DataSourceContext): void {
+    DataSourceTemplate.createWithContext(
+      "PoolOracle",
+      [address.toHex()],
+      context
+    );
+  }
+}

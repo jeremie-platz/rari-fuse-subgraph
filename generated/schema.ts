@@ -427,6 +427,15 @@ export class Pool extends Entity {
     this.set("priceOracle", Value.fromBytes(value));
   }
 
+  get poolOracle(): string {
+    let value = this.get("poolOracle");
+    return value.toString();
+  }
+
+  set poolOracle(value: string) {
+    this.set("poolOracle", Value.fromString(value));
+  }
+
   get closeFactor(): BigInt | null {
     let value = this.get("closeFactor");
     if (value === null || value.kind == ValueKind.NULL) {
@@ -675,6 +684,113 @@ export class UnderlyingAsset extends Entity {
 
   set totalSupplyUSD(value: BigInt) {
     this.set("totalSupplyUSD", Value.fromBigInt(value));
+  }
+}
+
+export class PoolOracle extends Entity {
+  constructor(id: string) {
+    super();
+    this.set("id", Value.fromString(id));
+  }
+
+  save(): void {
+    let id = this.get("id");
+    assert(id !== null, "Cannot save PoolOracle entity without an ID");
+    assert(
+      id.kind == ValueKind.STRING,
+      "Cannot save PoolOracle entity with non-string ID. " +
+        'Considering using .toHex() to convert the "id" to a string.'
+    );
+    store.set("PoolOracle", id.toString(), this);
+  }
+
+  static load(id: string): PoolOracle | null {
+    return store.get("PoolOracle", id) as PoolOracle | null;
+  }
+
+  get id(): string {
+    let value = this.get("id");
+    return value.toString();
+  }
+
+  set id(value: string) {
+    this.set("id", Value.fromString(value));
+  }
+
+  get address(): Bytes {
+    let value = this.get("address");
+    return value.toBytes();
+  }
+
+  set address(value: Bytes) {
+    this.set("address", Value.fromBytes(value));
+  }
+
+  get admin(): Bytes {
+    let value = this.get("admin");
+    return value.toBytes();
+  }
+
+  set admin(value: Bytes) {
+    this.set("admin", Value.fromBytes(value));
+  }
+
+  get defaultOracle(): Bytes {
+    let value = this.get("defaultOracle");
+    return value.toBytes();
+  }
+
+  set defaultOracle(value: Bytes) {
+    this.set("defaultOracle", Value.fromBytes(value));
+  }
+
+  get pool(): string {
+    let value = this.get("pool");
+    return value.toString();
+  }
+
+  set pool(value: string) {
+    this.set("pool", Value.fromString(value));
+  }
+}
+
+export class UnderlyingOracle extends Entity {
+  constructor(id: string) {
+    super();
+    this.set("id", Value.fromString(id));
+  }
+
+  save(): void {
+    let id = this.get("id");
+    assert(id !== null, "Cannot save UnderlyingOracle entity without an ID");
+    assert(
+      id.kind == ValueKind.STRING,
+      "Cannot save UnderlyingOracle entity with non-string ID. " +
+        'Considering using .toHex() to convert the "id" to a string.'
+    );
+    store.set("UnderlyingOracle", id.toString(), this);
+  }
+
+  static load(id: string): UnderlyingOracle | null {
+    return store.get("UnderlyingOracle", id) as UnderlyingOracle | null;
+  }
+
+  get id(): string {
+    let value = this.get("id");
+    return value.toString();
+  }
+
+  set id(value: string) {
+    this.set("id", Value.fromString(value));
+  }
+
+  get address(): Bytes {
+    let value = this.get("address");
+    return value.toBytes();
+  }
+
+  set address(value: Bytes) {
+    this.set("address", Value.fromBytes(value));
   }
 }
 

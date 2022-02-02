@@ -95,6 +95,10 @@ type Pool @entity {
 
   "oracle the pool of this comptroller uses"
   priceOracle: Bytes!
+
+  "pool oracle entity"
+  poolOracle: PoolOracle!
+
   "Factor used to determine repayAmount for liquidating"
   closeFactor: BigInt
   "The percent bonus liquidators get for liquidating for underlying pool"
@@ -151,6 +155,18 @@ type UnderlyingAsset @entity {
 
   "total amount supplied value of all the assets ctokens in USD"
   totalSupplyUSD: BigInt!
+}
+
+type PoolOracle @entity {
+  id: ID!
+  address: Bytes!
+  admin: Bytes!
+  defaultOracle: Bytes!
+}
+
+type UnderlyingOracle @entity {
+  id: ID!
+  address: Bytes!
 }
 
 type Oracle @entity {
